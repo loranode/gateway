@@ -1,0 +1,15 @@
+services:
+  gateway:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ADDR: "meshtastic.local:4403"
+      HTTP_ADDR: ":8080"
+      DB_PATH: "/data/sqlite.db"
+    volumes:
+      - gateway-data:/data
+    restart: unless-stopped
+
+volumes:
+  gateway-data:

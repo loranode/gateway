@@ -1,0 +1,161 @@
+version: 1
+
+ignore:
+  - "**/*_test.go"
+  - "api/meshtastic/*.pb.go"
+  - "api/rest/*.go"
+
+rules:
+  - path: "cmd/app"
+    mode: flat
+    allow-types: none
+    allow-vars: none
+    allow-funcs: local
+    modules:
+      - "$module/internal/config"
+      - "$module/internal/controller"
+      - "$module/internal/worker"
+      - "$module/internal/repositories/**"
+      - "$module/internal/services/**"
+      - "$module/api/rest"
+      - "github.com/merzzzl/proto-rest-api/swagger"
+      - "github.com/merzzzl/proto-rest-api/runtime"
+
+  - path: "internal/models"
+    mode: flat
+    allow-types: exported
+    allow-vars: exported
+    allow-funcs: none
+    modules: []
+
+  - path: "internal/config"
+    mode: flat
+    allow-types: none
+    allow-vars: none
+    allow-funcs: none
+    modules:
+      - "github.com/caarlos0/env/**"
+
+  - path: "internal/config/package.go"
+    exclude-funcs: ["Load"]
+
+  - path: "internal/config/model.go"
+    exclude-types: ["Config*"]
+
+  - path: "internal/controller"
+    mode: flat
+    allow-types: none
+    allow-vars: none
+    allow-funcs: all
+    require-receiver: all
+    modules:
+      - "$module/internal/models"
+      - "$module/internal/services/**"
+      - "$module/internal/mappers"
+      - "$module/api/rest"
+      - "google.golang.org/protobuf/types/known/*"
+      - "github.com/merzzzl/proto-rest-api/runtime"
+
+  - path: "internal/controller/package.go"
+    allow-types: local
+    allow-vars: local
+    allow-funcs: local
+    exclude-funcs: ["New*"]
+    exclude-types: ["Controller"]
+    modules:
+      - "$module/api/rest"
+      - "$module/internal/services/**"
+
+  - path: "internal/worker"
+    mode: flat
+    allow-types: none
+    allow-vars: none
+    allow-funcs: all
+    require-receiver: all
+    modules:
+      - "$module/internal/models"
+      - "$module/internal/services/**"
+      - "$module/api/meshtastic"
+      - "google.golang.org/protobuf/**"
+
+  - path: "internal/worker/package.go"
+    allow-types: local
+    allow-vars: local
+    allow-funcs: local
+    exclude-funcs: ["New*"]
+    exclude-types: ["Worker"]
+    modules:
+      - "$module/internal/services/**"
+
+  - path: "internal/repositories"
+    mode: subdirs-only
+
+  - path: "internal/repositories/*"
+    mode: flat
+    allow-types: none
+    allow-vars: none
+    allow-funcs: all
+    require-receiver: all
+    exported:
+      inputs:
+        - "$module/internal/models"
+      outputs:
+        - "$module/internal/models"
+    modules:
+      - "$module/internal/models"
+      - "$module/migrations"
+      - "modernc.org/sqlite"
+      - "github.com/pressly/goose/**"
+
+  - path: "internal/repositories/*/package.go"
+    allow-types: local
+    allow-vars: local
+    allow-funcs: local
+    exclude-vars: ["Err*"]
+    exclude-funcs: ["New"]
+    exclude-types: ["Repository"]
+    modules: []
+
+  - path: "internal/services"
+    mode: subdirs-only
+
+  - path: "internal/services/*"
+    mode: flat
+    allow-types: none
+    allow-vars: none
+    allow-funcs: all
+    require-receiver: all
+    exported:
+      inputs:
+        - "$module/internal/models"
+      outputs:
+        - "$module/internal/models"
+    modules:
+      - "$module/internal/models"
+      - "$module/internal/repositories/**"
+
+  - path: "internal/services/*/package.go"
+    allow-types: local
+    allow-vars: local
+    allow-funcs: local
+    exclude-vars: ["Err*"]
+    exclude-funcs: ["New"]
+    exclude-types: ["Service"]
+    modules:
+      - "$module/internal/repositories/**"
+
+  - path: "internal/mappers"
+    mode: flat
+    allow-types: none
+    allow-vars: none
+    allow-funcs: exported
+    modules:
+      - "$module/internal/models"
+      - "$module/api/rest"
+
+  - path: "migrations"
+    mode: flat
+    allow-types: none
+    allow-vars: exported
+    allow-funcs: none
+    modules: []

@@ -1,0 +1,218 @@
+syntax = "proto3";
+
+package rest;
+
+import "restapi/annotations.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/loranode/gateway/api/rest;rest";
+
+// Node is one full entry in the mesh node database.
+message Node {
+  uint32 num = 1;        // node number (primary key)
+  string long_name = 2;  // human-readable long name
+  string short_name = 3; // short name / call sign
+  string hw_model = 4;   // hardware model
+  string role = 5;       // device role
+  float snr = 6;         // signal-to-noise ratio of the last packet, dB
+  int32 rssi = 7;        // received signal strength of the last packet, dBm
+  optional uint32 hops_away = 8;  // hops away from us; absent if unknown
+  optional double latitude = 9;   // latitude, degrees; absent if unknown
+  optional double longitude = 10; // longitude, degrees; absent if unknown
+  optional int32 altitude = 11;   // altitude, metres; absent if unknown
+  optional uint32 battery = 12;   // battery level, percent; absent if unknown
+  optional float voltage = 13;    // battery voltage, volts; absent if unknown
+  bool via_mqtt = 14;    // true if last seen over MQTT rather than LoRa
+  bool is_favorite = 15; // true if marked favorite on the radio
+  int64 last_heard = 16; // last time a packet was heard, Unix seconds
+  int64 updated_at = 17; // last time this record changed, Unix seconds
+}
+
+// NodeSummary is the compact node entry returned by the list endpoint.
+message NodeSummary {
+  uint32 num = 1;        // node number (primary key)
+  string short_name = 2; // short name / call sign
+  string long_name = 3;  // human-readable long name
+}
+
+// Message is one received text message with all stored metadata.
+message Message {
+  uint32 id = 1;      // on-air Meshtastic packet id (primary key)
+  uint32 from = 2;    // sender node number
+  uint32 to = 4;      // recipient node number (0xffffffff for broadcast)
+  uint32 channel = 5; // channel index the message was received on
+  string text = 6;    // message body text
+  float snr = 7;      // signal-to-noise ratio of the received packet, dB
+  int32 rssi = 8;     // received signal strength, dBm
+  optional uint32 hops_away =
+      9; // hops traversed (hop_start - hop_limit); absent if unknown
+  int64 rx_time = 10; // receive time, Unix seconds
+}
+
+// ListNodesRequest is the (empty) request for the node list.
+message ListNodesRequest {}
+
+// ListNodesResponse carries the node summaries.
+message ListNodesResponse {
+  repeated NodeSummary nodes = 1; // node summaries, most recently heard first
+}
+
+// GetNodeRequest selects one node for the detail endpoint.
+message GetNodeRequest {
+  uint32 num = 1; // node number (path)
+}
+
+// ListMessagesResponse carries the messages for a node.
+message ListMessagesResponse {
+  repeated Message messages = 1; // messages, newest first
+}
+
+// ListMessagesRequest selects the sender node for the direct-message list.
+message ListMessagesRequest {
+  uint32 num = 1; // sender node number (path)
+}
+
+// SendMessageRequest is a text message to transmit to one node.
+message SendMessageRequest {
+  uint32 num = 1;              // recipient node number (path)
+  string text = 2;             // message body text
+  optional uint32 channel = 3; // channel index (0 by default)
+}
+
+// RegisterCallbackRequest registers a webhook URL.
+message RegisterCallbackRequest {
+  string url = 1; // webhook URL to register
+}
+
+// ListCallbacksRequest is the (empty) request for the callback list.
+message ListCallbacksRequest {}
+
+// ListCallbacksResponse carries the registered callbacks.
+message ListCallbacksResponse {
+  repeated string urls = 1; // registered webhook subscriptions
+}
+
+// DeleteCallbackRequest unregisters a webhook URL.
+message DeleteCallbackRequest {
+  string url = 1; // webhook URL to remove
+}
+
+// Channel is one configured channel on the connected radio.
+message Channel {
+  uint32 index = 1; // channel index
+  string name = 2;  // channel name
+  string role = 3;  // channel role (e.g. PRIMARY, SECONDARY, DISABLED)
+}
+
+// ListChannelsRequest is the (empty) request for the channel list.
+message ListChannelsRequest {}
+
+// ListChannelsResponse carries the configured channels.
+message ListChannelsResponse {
+  repeated Channel channels = 1; // configured channels, ordered by index
+}
+
+// ListChannelMessagesRequest selects a channel for its message list.
+message ListChannelMessagesRequest {
+  uint32 index = 1; // channel index (path)
+}
+
+// MeshService exposes the connected Meshtastic node.
+service MeshService {
+  option (restapi.service) = {
+    base_path : "/api/v1"
+  };
+
+  // ListNodes returns a compact summary of every node the radio can see.
+  rpc ListNodes(ListNodesRequest) returns (ListNodesResponse) {
+    option (restapi.method) = {
+      method : "GET"
+      path : "/nodes"
+      response : ".nodes"
+    };
+  }
+
+  // GetNode returns all stored information for one node by its number.
+  rpc GetNode(GetNodeRequest) returns (Node) {
+    option (restapi.method) = {
+      method : "GET"
+      path : "/nodes/:num"
+      response : "*"
+    };
+  }
+
+  // ListNodeMessages returns direct messages received from one node.
+  rpc ListNodeMessages(ListMessagesRequest) returns (ListMessagesResponse) {
+    option (restapi.method) = {
+      method : "GET"
+      path : "/nodes/:num/messages"
+      response : ".messages"
+    };
+  }
+
+  // SendNodeMessage transmits a text message to one node.
+  rpc SendNodeMessage(SendMessageRequest) returns (google.protobuf.Empty) {
+    option (restapi.method) = {
+      method : "POST"
+      path : "/nodes/:num/messages"
+      request : "*"
+      success_code : 202
+    };
+  }
+
+  // ListChannels returns every configured channel on the radio.
+  rpc ListChannels(ListChannelsRequest) returns (ListChannelsResponse) {
+    option (restapi.method) = {
+      method : "GET"
+      path : "/channels"
+      response : ".channels"
+    };
+  }
+
+  // ListChannelMessages returns messages received on one channel.
+  rpc ListChannelMessages(ListChannelMessagesRequest)
+      returns (ListMessagesResponse) {
+    option (restapi.method) = {
+      method : "GET"
+      path : "/channels/:index/messages"
+      response : "*"
+    };
+  }
+}
+
+// CallbackService manages webhook subscriptions.
+service CallbackService {
+  option (restapi.service) = {
+    base_path : "/api/v1"
+  };
+
+  // RegisterCallback subscribes a webhook URL to mesh events.
+  rpc RegisterCallback(RegisterCallbackRequest)
+      returns (google.protobuf.Empty) {
+    option (restapi.method) = {
+      method : "POST"
+      path : "/callback"
+      request : "*"
+      success_code : 201
+    };
+  }
+
+  // ListCallbacks returns every registered webhook subscriptions.
+  rpc ListCallbacks(ListCallbacksRequest) returns (ListCallbacksResponse) {
+    option (restapi.method) = {
+      method : "GET"
+      path : "/callback"
+      response : "*"
+    };
+  }
+
+  // DeleteCallback unsubscribes a webhook URL.
+  rpc DeleteCallback(DeleteCallbackRequest) returns (google.protobuf.Empty) {
+    option (restapi.method) = {
+      method : "DELETE"
+      path : "/callback"
+      request : "*"
+      success_code : 204
+    };
+  }
+}
