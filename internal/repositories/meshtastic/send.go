@@ -17,13 +17,20 @@ func (r *Repository) Send(ctx context.Context, text string, to, channel, replyID
 		to = broadcast
 	}
 
+	// The firmware only PKI-encrypts a client-API direct message when the packet
+	// asks for it; without the flag it falls back to channel encryption, which a
+	// recipient expecting a PKI DM silently drops. Request it for direct messages
+	// to nodes we have seen advertise a public key.
+	_, hasKey := r.pkiNodes.Load(to)
+
 	frame, err := proto.Marshal(&mesh.ToRadio{
 		PayloadVariant: &mesh.ToRadio_Packet{Packet: &mesh.MeshPacket{
-			To:       to,
-			Channel:  channel,
-			Id:       rand.Uint32(),
-			HopLimit: r.hopLimit.Load(),
-			WantAck:  true,
+			To:           to,
+			Channel:      channel,
+			Id:           rand.Uint32(),
+			HopLimit:     r.hopLimit.Load(),
+			WantAck:      true,
+			PkiEncrypted: to != broadcast && hasKey,
 			PayloadVariant: &mesh.MeshPacket_Decoded{Decoded: &mesh.Data{
 				Portnum: base.PortNum_TEXT_MESSAGE_APP,
 				Payload: []byte(text),

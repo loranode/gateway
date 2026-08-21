@@ -14,6 +14,10 @@ func (r *Repository) nodeInfo(ni *mesh.NodeInfo) models.Node {
 
 	if u := ni.GetUser(); u != nil {
 		r.applyUser(&node, u)
+
+		if len(u.GetPublicKey()) > 0 {
+			r.pkiNodes.Store(ni.GetNum(), struct{}{})
+		}
 	}
 
 	if ni.GetSnr() != 0 {

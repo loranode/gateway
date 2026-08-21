@@ -7,6 +7,7 @@ package meshtastic
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 )
 
@@ -20,11 +21,15 @@ type driver interface {
 
 // Repository is a keep-alive, decoding connection to a node's client API. The
 // hop limit is captured from the node's config dump and read on every Send, so
-// the two run on different goroutines and must go through the atomic.
+// the two run on different goroutines and must go through the atomic. pkiNodes
+// records which node numbers advertised a public key (from NodeInfo), so a
+// direct message can request PKI encryption the same way the read loop and Send
+// straddle goroutines.
 type Repository struct {
 	addr     string
 	session  driver
 	hopLimit atomic.Uint32
+	pkiNodes sync.Map
 }
 
 // broadcast is the recipient value that marks a channel (broadcast) packet.
