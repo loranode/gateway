@@ -33,9 +33,4 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 )
 
-require (
-	github.com/loranode/gateway/api v0.0.0
-	google.golang.org/grpc v1.83.1
-)
-
-replace github.com/loranode/gateway/api => ./api
+require google.golang.org/grpc v1.83.1
