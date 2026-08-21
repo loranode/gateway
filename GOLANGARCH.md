@@ -27,7 +27,7 @@ Rules with a file path (ending in `.go`) override directory rules for that file.
 - Declarations: no types may be declared.
 - Declarations: no package-level vars/consts may be declared.
 - Declarations: only unexported functions/methods may be declared.
-- Imports: stdlib and `github.com/loranode/gateway/internal/config`, `github.com/loranode/gateway/internal/controller`, `github.com/loranode/gateway/internal/worker`, `github.com/loranode/gateway/internal/repositories/**`, `github.com/loranode/gateway/internal/services/**`, `github.com/loranode/gateway/api`, `github.com/merzzzl/proto-rest-api/swagger`, `github.com/merzzzl/proto-rest-api/runtime` only.
+- Imports: stdlib and `github.com/loranode/gateway/internal/config`, `github.com/loranode/gateway/internal/controller`, `github.com/loranode/gateway/internal/worker`, `github.com/loranode/gateway/internal/repositories/**`, `github.com/loranode/gateway/internal/services/**`, `github.com/loranode/gateway/api`, `google.golang.org/grpc`, `github.com/merzzzl/proto-rest-api/swagger`, `github.com/merzzzl/proto-rest-api/runtime` only.
 
 ### `internal/models`
 
@@ -57,7 +57,7 @@ Rules with a file path (ending in `.go`) override directory rules for that file.
 - Declarations: no types may be declared.
 - Declarations: no package-level vars/consts may be declared.
 - Every function must be a method (declared with a receiver).
-- Imports: stdlib and `github.com/loranode/gateway/internal/models`, `github.com/loranode/gateway/internal/services/**`, `github.com/loranode/gateway/internal/mappers`, `github.com/loranode/gateway/api`, `google.golang.org/protobuf/types/known/*`, `github.com/merzzzl/proto-rest-api/runtime` only.
+- Imports: stdlib and `github.com/loranode/gateway/internal/models`, `github.com/loranode/gateway/internal/services/**`, `github.com/loranode/gateway/internal/mappers`, `github.com/loranode/gateway/api`, `google.golang.org/grpc`, `google.golang.org/protobuf/types/known/*`, `github.com/merzzzl/proto-rest-api/runtime` only.
 
 ### `internal/controller/package.go`
 
@@ -121,7 +121,7 @@ Rules with a file path (ending in `.go`) override directory rules for that file.
 - Declarations: only unexported types may be declared, except names matching `Service`.
 - Declarations: only unexported package-level vars/consts may be declared, except names matching `Err*`.
 - Declarations: only unexported functions/methods may be declared, except names matching `New`.
-- Imports: stdlib and `github.com/loranode/gateway/internal/repositories/**` only.
+- Imports: stdlib and `github.com/loranode/gateway/internal/repositories/**`, `github.com/loranode/gateway/internal/models` only.
 
 ### `internal/mappers`
 

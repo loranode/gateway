@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 #
-# Generate the REST API Go code from our own proto contracts in proto/ into
-# api, using merzzzl/proto-rest-api (protoc-gen-go + protoc-gen-go-rest).
+# Generate the Go API code from our own proto contracts in proto/ into api:
+# protobuf models, the gRPC service, and the REST/websocket layer
+# (merzzzl/proto-rest-api). api/ is a nested module the gateway and botkit share.
 #
-# Requires: protoc, protoc-gen-go, protoc-gen-go-rest (on PATH).
+# Requires: protoc, protoc-gen-go, protoc-gen-go-grpc, protoc-gen-go-rest (PATH).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -25,10 +26,11 @@ protoc \
 	--proto_path="$RESTAPI_INC" \
 	--proto_path="$WKT_INC" \
 	--go_out="$ROOT" --go_opt=module="$MODULE" \
+	--go-grpc_out="$ROOT" --go-grpc_opt=module="$MODULE" \
 	--go-rest_out="$ROOT" --go-rest_opt=module="$MODULE" \
 	gateway.proto
 
-echo "generated REST API into api"
+echo "generated proto + gRPC + REST into api"
 
 # Render Markdown API docs from the generated swagger JSON into SWAGGER.md at the
 # repo root. The first 4 lines are the generator's title/preamble — trim them.

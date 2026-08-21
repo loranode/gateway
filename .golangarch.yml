@@ -17,6 +17,7 @@ rules:
       - "$module/internal/repositories/**"
       - "$module/internal/services/**"
       - "$module/api"
+      - "google.golang.org/grpc"
       - "github.com/merzzzl/proto-rest-api/swagger"
       - "github.com/merzzzl/proto-rest-api/runtime"
 
@@ -52,6 +53,7 @@ rules:
       - "$module/internal/services/**"
       - "$module/internal/mappers"
       - "$module/api"
+      - "google.golang.org/grpc"
       - "google.golang.org/protobuf/types/known/*"
       - "github.com/merzzzl/proto-rest-api/runtime"
 
@@ -142,6 +144,7 @@ rules:
     exclude-types: ["Service"]
     modules:
       - "$module/internal/repositories/**"
+      - "$module/internal/models"
 
   - path: "internal/mappers"
     mode: flat

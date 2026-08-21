@@ -652,28 +652,33 @@ func (x *SendMessageRequest) GetReplyId() uint32 {
 	return 0
 }
 
-// RegisterCallbackRequest registers a webhook URL.
-type RegisterCallbackRequest struct {
+// Event is emitted on mesh activity: a node appeared or changed, or a message
+// arrived. message_id is set for message events; channel_id only for channel
+// (broadcast) messages.
+type Event struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"` // webhook URL to register
+	NodeId        uint32                 `protobuf:"varint,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`                // node the event is about
+	EventType     string                 `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`        // "node_created" | "node_updated" | "node_message" | "channel_message"
+	MessageId     *uint32                `protobuf:"varint,3,opt,name=message_id,json=messageId,proto3,oneof" json:"message_id,omitempty"` // packet id, for message events
+	ChannelId     *uint32                `protobuf:"varint,4,opt,name=channel_id,json=channelId,proto3,oneof" json:"channel_id,omitempty"` // channel index, for channel messages
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RegisterCallbackRequest) Reset() {
-	*x = RegisterCallbackRequest{}
+func (x *Event) Reset() {
+	*x = Event{}
 	mi := &file_gateway_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RegisterCallbackRequest) String() string {
+func (x *Event) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RegisterCallbackRequest) ProtoMessage() {}
+func (*Event) ProtoMessage() {}
 
-func (x *RegisterCallbackRequest) ProtoReflect() protoreflect.Message {
+func (x *Event) ProtoReflect() protoreflect.Message {
 	mi := &file_gateway_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -685,39 +690,60 @@ func (x *RegisterCallbackRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RegisterCallbackRequest.ProtoReflect.Descriptor instead.
-func (*RegisterCallbackRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use Event.ProtoReflect.Descriptor instead.
+func (*Event) Descriptor() ([]byte, []int) {
 	return file_gateway_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *RegisterCallbackRequest) GetUrl() string {
+func (x *Event) GetNodeId() uint32 {
 	if x != nil {
-		return x.Url
+		return x.NodeId
+	}
+	return 0
+}
+
+func (x *Event) GetEventType() string {
+	if x != nil {
+		return x.EventType
 	}
 	return ""
 }
 
-// ListCallbacksRequest is the (empty) request for the callback list.
-type ListCallbacksRequest struct {
+func (x *Event) GetMessageId() uint32 {
+	if x != nil && x.MessageId != nil {
+		return *x.MessageId
+	}
+	return 0
+}
+
+func (x *Event) GetChannelId() uint32 {
+	if x != nil && x.ChannelId != nil {
+		return *x.ChannelId
+	}
+	return 0
+}
+
+// SubscribeRequest opens the event stream (no filter for now).
+type SubscribeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListCallbacksRequest) Reset() {
-	*x = ListCallbacksRequest{}
+func (x *SubscribeRequest) Reset() {
+	*x = SubscribeRequest{}
 	mi := &file_gateway_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListCallbacksRequest) String() string {
+func (x *SubscribeRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListCallbacksRequest) ProtoMessage() {}
+func (*SubscribeRequest) ProtoMessage() {}
 
-func (x *ListCallbacksRequest) ProtoReflect() protoreflect.Message {
+func (x *SubscribeRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_gateway_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -729,99 +755,9 @@ func (x *ListCallbacksRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListCallbacksRequest.ProtoReflect.Descriptor instead.
-func (*ListCallbacksRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use SubscribeRequest.ProtoReflect.Descriptor instead.
+func (*SubscribeRequest) Descriptor() ([]byte, []int) {
 	return file_gateway_proto_rawDescGZIP(), []int{10}
-}
-
-// ListCallbacksResponse carries the registered callbacks.
-type ListCallbacksResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Urls          []string               `protobuf:"bytes,1,rep,name=urls,proto3" json:"urls,omitempty"` // registered webhook subscriptions
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListCallbacksResponse) Reset() {
-	*x = ListCallbacksResponse{}
-	mi := &file_gateway_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListCallbacksResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListCallbacksResponse) ProtoMessage() {}
-
-func (x *ListCallbacksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListCallbacksResponse.ProtoReflect.Descriptor instead.
-func (*ListCallbacksResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *ListCallbacksResponse) GetUrls() []string {
-	if x != nil {
-		return x.Urls
-	}
-	return nil
-}
-
-// DeleteCallbackRequest unregisters a webhook URL.
-type DeleteCallbackRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"` // webhook URL to remove
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteCallbackRequest) Reset() {
-	*x = DeleteCallbackRequest{}
-	mi := &file_gateway_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteCallbackRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteCallbackRequest) ProtoMessage() {}
-
-func (x *DeleteCallbackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteCallbackRequest.ProtoReflect.Descriptor instead.
-func (*DeleteCallbackRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *DeleteCallbackRequest) GetUrl() string {
-	if x != nil {
-		return x.Url
-	}
-	return ""
 }
 
 // Channel is one configured channel on the connected radio.
@@ -836,7 +772,7 @@ type Channel struct {
 
 func (x *Channel) Reset() {
 	*x = Channel{}
-	mi := &file_gateway_proto_msgTypes[13]
+	mi := &file_gateway_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -848,7 +784,7 @@ func (x *Channel) String() string {
 func (*Channel) ProtoMessage() {}
 
 func (x *Channel) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[13]
+	mi := &file_gateway_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -861,7 +797,7 @@ func (x *Channel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Channel.ProtoReflect.Descriptor instead.
 func (*Channel) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{13}
+	return file_gateway_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Channel) GetIndex() uint32 {
@@ -894,7 +830,7 @@ type ListChannelsRequest struct {
 
 func (x *ListChannelsRequest) Reset() {
 	*x = ListChannelsRequest{}
-	mi := &file_gateway_proto_msgTypes[14]
+	mi := &file_gateway_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -906,7 +842,7 @@ func (x *ListChannelsRequest) String() string {
 func (*ListChannelsRequest) ProtoMessage() {}
 
 func (x *ListChannelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[14]
+	mi := &file_gateway_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -919,7 +855,7 @@ func (x *ListChannelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChannelsRequest.ProtoReflect.Descriptor instead.
 func (*ListChannelsRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{14}
+	return file_gateway_proto_rawDescGZIP(), []int{12}
 }
 
 // ListChannelsResponse carries the configured channels.
@@ -932,7 +868,7 @@ type ListChannelsResponse struct {
 
 func (x *ListChannelsResponse) Reset() {
 	*x = ListChannelsResponse{}
-	mi := &file_gateway_proto_msgTypes[15]
+	mi := &file_gateway_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -944,7 +880,7 @@ func (x *ListChannelsResponse) String() string {
 func (*ListChannelsResponse) ProtoMessage() {}
 
 func (x *ListChannelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[15]
+	mi := &file_gateway_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -957,7 +893,7 @@ func (x *ListChannelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChannelsResponse.ProtoReflect.Descriptor instead.
 func (*ListChannelsResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{15}
+	return file_gateway_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListChannelsResponse) GetChannels() []*Channel {
@@ -977,7 +913,7 @@ type ListChannelMessagesRequest struct {
 
 func (x *ListChannelMessagesRequest) Reset() {
 	*x = ListChannelMessagesRequest{}
-	mi := &file_gateway_proto_msgTypes[16]
+	mi := &file_gateway_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -989,7 +925,7 @@ func (x *ListChannelMessagesRequest) String() string {
 func (*ListChannelMessagesRequest) ProtoMessage() {}
 
 func (x *ListChannelMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[16]
+	mi := &file_gateway_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1002,7 +938,7 @@ func (x *ListChannelMessagesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChannelMessagesRequest.ProtoReflect.Descriptor instead.
 func (*ListChannelMessagesRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{16}
+	return file_gateway_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListChannelMessagesRequest) GetIndex() uint32 {
@@ -1024,7 +960,7 @@ type SendChannelMessageRequest struct {
 
 func (x *SendChannelMessageRequest) Reset() {
 	*x = SendChannelMessageRequest{}
-	mi := &file_gateway_proto_msgTypes[17]
+	mi := &file_gateway_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1036,7 +972,7 @@ func (x *SendChannelMessageRequest) String() string {
 func (*SendChannelMessageRequest) ProtoMessage() {}
 
 func (x *SendChannelMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[17]
+	mi := &file_gateway_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1049,7 +985,7 @@ func (x *SendChannelMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendChannelMessageRequest.ProtoReflect.Descriptor instead.
 func (*SendChannelMessageRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{17}
+	return file_gateway_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SendChannelMessageRequest) GetIndex() uint32 {
@@ -1145,14 +1081,18 @@ const file_gateway_proto_rawDesc = "" +
 	"\breply_id\x18\x04 \x01(\rH\x01R\areplyId\x88\x01\x01B\n" +
 	"\n" +
 	"\b_channelB\v\n" +
-	"\t_reply_id\"+\n" +
-	"\x17RegisterCallbackRequest\x12\x10\n" +
-	"\x03url\x18\x01 \x01(\tR\x03url\"\x16\n" +
-	"\x14ListCallbacksRequest\"+\n" +
-	"\x15ListCallbacksResponse\x12\x12\n" +
-	"\x04urls\x18\x01 \x03(\tR\x04urls\")\n" +
-	"\x15DeleteCallbackRequest\x12\x10\n" +
-	"\x03url\x18\x01 \x01(\tR\x03url\"G\n" +
+	"\t_reply_id\"\xa5\x01\n" +
+	"\x05Event\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\rR\x06nodeId\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x02 \x01(\tR\teventType\x12\"\n" +
+	"\n" +
+	"message_id\x18\x03 \x01(\rH\x00R\tmessageId\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"channel_id\x18\x04 \x01(\rH\x01R\tchannelId\x88\x01\x01B\r\n" +
+	"\v_message_idB\r\n" +
+	"\v_channel_id\"\x12\n" +
+	"\x10SubscribeRequest\"G\n" +
 	"\aChannel\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\rR\x05index\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
@@ -1183,14 +1123,10 @@ const file_gateway_proto_rawDesc = "" +
 	"\x03GET\x12\x19/channels/:index/messages\"\x01*\x12z\n" +
 	"\x12SendChannelMessage\x12\x1f.rest.SendChannelMessageRequest\x1a\x16.google.protobuf.Empty\"+\x8a\x97\"'\n" +
 	"\x04POST\x12\x19/channels/:index/messages\x1a\x01*(\xca\x01\x1a\r\x92\x97\"\t\n" +
-	"\a/api/v12\xd1\x02\n" +
-	"\x0fCallbackService\x12f\n" +
-	"\x10RegisterCallback\x12\x1d.rest.RegisterCallbackRequest\x1a\x16.google.protobuf.Empty\"\x1b\x8a\x97\"\x17\n" +
-	"\x04POST\x12\t/callback\x1a\x01*(\xc9\x01\x12a\n" +
-	"\rListCallbacks\x12\x1a.rest.ListCallbacksRequest\x1a\x1b.rest.ListCallbacksResponse\"\x17\x8a\x97\"\x13\n" +
-	"\x03GET\x12\t/callback\"\x01*\x12d\n" +
-	"\x0eDeleteCallback\x12\x1b.rest.DeleteCallbackRequest\x1a\x16.google.protobuf.Empty\"\x1d\x8a\x97\"\x19\n" +
-	"\x06DELETE\x12\t/callback\x1a\x01*(\xcc\x01\x1a\r\x92\x97\"\t\n" +
+	"\a/api/v12h\n" +
+	"\fEventService\x12I\n" +
+	"\tSubscribe\x12\x16.rest.SubscribeRequest\x1a\v.rest.Event\"\x15\x8a\x97\"\x11\n" +
+	"\x03GET\x12\a/events\"\x01*0\x01\x1a\r\x92\x97\"\t\n" +
 	"\a/api/v1B%Z#github.com/loranode/gateway/api;apib\x06proto3"
 
 var (
@@ -1205,7 +1141,7 @@ func file_gateway_proto_rawDescGZIP() []byte {
 	return file_gateway_proto_rawDescData
 }
 
-var file_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_gateway_proto_goTypes = []any{
 	(*Node)(nil),                       // 0: rest.Node
 	(*NodeSummary)(nil),                // 1: rest.NodeSummary
@@ -1216,43 +1152,37 @@ var file_gateway_proto_goTypes = []any{
 	(*ListMessagesResponse)(nil),       // 6: rest.ListMessagesResponse
 	(*ListMessagesRequest)(nil),        // 7: rest.ListMessagesRequest
 	(*SendMessageRequest)(nil),         // 8: rest.SendMessageRequest
-	(*RegisterCallbackRequest)(nil),    // 9: rest.RegisterCallbackRequest
-	(*ListCallbacksRequest)(nil),       // 10: rest.ListCallbacksRequest
-	(*ListCallbacksResponse)(nil),      // 11: rest.ListCallbacksResponse
-	(*DeleteCallbackRequest)(nil),      // 12: rest.DeleteCallbackRequest
-	(*Channel)(nil),                    // 13: rest.Channel
-	(*ListChannelsRequest)(nil),        // 14: rest.ListChannelsRequest
-	(*ListChannelsResponse)(nil),       // 15: rest.ListChannelsResponse
-	(*ListChannelMessagesRequest)(nil), // 16: rest.ListChannelMessagesRequest
-	(*SendChannelMessageRequest)(nil),  // 17: rest.SendChannelMessageRequest
-	(*emptypb.Empty)(nil),              // 18: google.protobuf.Empty
+	(*Event)(nil),                      // 9: rest.Event
+	(*SubscribeRequest)(nil),           // 10: rest.SubscribeRequest
+	(*Channel)(nil),                    // 11: rest.Channel
+	(*ListChannelsRequest)(nil),        // 12: rest.ListChannelsRequest
+	(*ListChannelsResponse)(nil),       // 13: rest.ListChannelsResponse
+	(*ListChannelMessagesRequest)(nil), // 14: rest.ListChannelMessagesRequest
+	(*SendChannelMessageRequest)(nil),  // 15: rest.SendChannelMessageRequest
+	(*emptypb.Empty)(nil),              // 16: google.protobuf.Empty
 }
 var file_gateway_proto_depIdxs = []int32{
 	1,  // 0: rest.ListNodesResponse.nodes:type_name -> rest.NodeSummary
 	2,  // 1: rest.ListMessagesResponse.messages:type_name -> rest.Message
-	13, // 2: rest.ListChannelsResponse.channels:type_name -> rest.Channel
+	11, // 2: rest.ListChannelsResponse.channels:type_name -> rest.Channel
 	3,  // 3: rest.MeshService.ListNodes:input_type -> rest.ListNodesRequest
 	5,  // 4: rest.MeshService.GetNode:input_type -> rest.GetNodeRequest
 	7,  // 5: rest.MeshService.ListNodeMessages:input_type -> rest.ListMessagesRequest
 	8,  // 6: rest.MeshService.SendNodeMessage:input_type -> rest.SendMessageRequest
-	14, // 7: rest.MeshService.ListChannels:input_type -> rest.ListChannelsRequest
-	16, // 8: rest.MeshService.ListChannelMessages:input_type -> rest.ListChannelMessagesRequest
-	17, // 9: rest.MeshService.SendChannelMessage:input_type -> rest.SendChannelMessageRequest
-	9,  // 10: rest.CallbackService.RegisterCallback:input_type -> rest.RegisterCallbackRequest
-	10, // 11: rest.CallbackService.ListCallbacks:input_type -> rest.ListCallbacksRequest
-	12, // 12: rest.CallbackService.DeleteCallback:input_type -> rest.DeleteCallbackRequest
-	4,  // 13: rest.MeshService.ListNodes:output_type -> rest.ListNodesResponse
-	0,  // 14: rest.MeshService.GetNode:output_type -> rest.Node
-	6,  // 15: rest.MeshService.ListNodeMessages:output_type -> rest.ListMessagesResponse
-	18, // 16: rest.MeshService.SendNodeMessage:output_type -> google.protobuf.Empty
-	15, // 17: rest.MeshService.ListChannels:output_type -> rest.ListChannelsResponse
-	6,  // 18: rest.MeshService.ListChannelMessages:output_type -> rest.ListMessagesResponse
-	18, // 19: rest.MeshService.SendChannelMessage:output_type -> google.protobuf.Empty
-	18, // 20: rest.CallbackService.RegisterCallback:output_type -> google.protobuf.Empty
-	11, // 21: rest.CallbackService.ListCallbacks:output_type -> rest.ListCallbacksResponse
-	18, // 22: rest.CallbackService.DeleteCallback:output_type -> google.protobuf.Empty
-	13, // [13:23] is the sub-list for method output_type
-	3,  // [3:13] is the sub-list for method input_type
+	12, // 7: rest.MeshService.ListChannels:input_type -> rest.ListChannelsRequest
+	14, // 8: rest.MeshService.ListChannelMessages:input_type -> rest.ListChannelMessagesRequest
+	15, // 9: rest.MeshService.SendChannelMessage:input_type -> rest.SendChannelMessageRequest
+	10, // 10: rest.EventService.Subscribe:input_type -> rest.SubscribeRequest
+	4,  // 11: rest.MeshService.ListNodes:output_type -> rest.ListNodesResponse
+	0,  // 12: rest.MeshService.GetNode:output_type -> rest.Node
+	6,  // 13: rest.MeshService.ListNodeMessages:output_type -> rest.ListMessagesResponse
+	16, // 14: rest.MeshService.SendNodeMessage:output_type -> google.protobuf.Empty
+	13, // 15: rest.MeshService.ListChannels:output_type -> rest.ListChannelsResponse
+	6,  // 16: rest.MeshService.ListChannelMessages:output_type -> rest.ListMessagesResponse
+	16, // 17: rest.MeshService.SendChannelMessage:output_type -> google.protobuf.Empty
+	9,  // 18: rest.EventService.Subscribe:output_type -> rest.Event
+	11, // [11:19] is the sub-list for method output_type
+	3,  // [3:11] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -1266,14 +1196,15 @@ func file_gateway_proto_init() {
 	file_gateway_proto_msgTypes[0].OneofWrappers = []any{}
 	file_gateway_proto_msgTypes[2].OneofWrappers = []any{}
 	file_gateway_proto_msgTypes[8].OneofWrappers = []any{}
-	file_gateway_proto_msgTypes[17].OneofWrappers = []any{}
+	file_gateway_proto_msgTypes[9].OneofWrappers = []any{}
+	file_gateway_proto_msgTypes[15].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_proto_rawDesc), len(file_gateway_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

@@ -13,6 +13,6 @@ func (w *Worker) Run(ctx context.Context) {
 			return
 		}
 
-		w.apply(ctx, ev)
+		w.apply(ev)
 	}
 }

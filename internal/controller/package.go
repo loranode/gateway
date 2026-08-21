@@ -1,6 +1,6 @@
-// Package controller implements the generated MeshService and CallbackService
-// REST APIs: each method answers one endpoint via the registry, events and mesh
-// services.
+// Package controller implements the generated MeshService (REST + gRPC) and the
+// EventService gRPC event stream, answering each via the registry, events and
+// mesh services.
 package controller
 
 import (
@@ -10,10 +10,12 @@ import (
 	"github.com/loranode/gateway/internal/services/registry"
 )
 
-// Controller implements the MeshService and CallbackService REST interfaces.
+// Controller implements MeshService over both REST and gRPC and streams events
+// over gRPC.
 type Controller struct {
 	api.UnimplementedMeshServiceWebServer
-	api.UnimplementedCallbackServiceWebServer
+	api.UnimplementedMeshServiceServer
+	api.UnimplementedEventServiceServer
 
 	registry *registry.Service
 	events   *events.Service

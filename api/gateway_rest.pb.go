@@ -10,6 +10,7 @@ import (
 	context "context"
 	json "encoding/json"
 	runtime "github.com/merzzzl/proto-rest-api/runtime"
+	grpc "google.golang.org/grpc"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	io "io"
 	http "net/http"
@@ -68,34 +69,46 @@ func (UnimplementedMeshServiceWebServer) SendChannelMessage(context.Context, *Se
 
 func (UnimplementedMeshServiceWebServer) mustEmbedUnimplementedMeshServiceWebServer() {}
 
-// CallbackServiceWebServer is the server API for CallbackService service.
-// All implementations must embed UnimplementedCallbackServiceWebServer for forward compatibility.
-type CallbackServiceWebServer interface {
-	// RegisterCallback subscribes a webhook URL to mesh events.
-	RegisterCallback(context.Context, *RegisterCallbackRequest) (*emptypb.Empty, error)
-	// ListCallbacks returns every registered webhook subscriptions.
-	ListCallbacks(context.Context, *ListCallbacksRequest) (*ListCallbacksResponse, error)
-	// DeleteCallback unsubscribes a webhook URL.
-	DeleteCallback(context.Context, *DeleteCallbackRequest) (*emptypb.Empty, error)
-	mustEmbedUnimplementedCallbackServiceWebServer()
+// EventServiceWebServer is the server API for EventService service.
+// All implementations must embed UnimplementedEventServiceWebServer for forward compatibility.
+type EventServiceWebServer interface {
+	// Subscribe streams every mesh event until the client disconnects. Over gRPC
+	// it is a server-streaming RPC; over REST it is a websocket at GET /events.
+	Subscribe(*SubscribeRequest, EventServiceSubscribeWebSocket) error
+	mustEmbedUnimplementedEventServiceWebServer()
 }
 
-// UnimplementedCallbackServiceWebServer must be embedded to have forward compatible implementations.
-type UnimplementedCallbackServiceWebServer struct{}
+// UnimplementedEventServiceWebServer must be embedded to have forward compatible implementations.
+type UnimplementedEventServiceWebServer struct{}
 
-func (UnimplementedCallbackServiceWebServer) RegisterCallback(context.Context, *RegisterCallbackRequest) (*emptypb.Empty, error) {
-	return nil, runtime.Errorf(http.StatusNotImplemented, "method not implemented")
+func (UnimplementedEventServiceWebServer) Subscribe(*SubscribeRequest, EventServiceSubscribeWebSocket) error {
+	return runtime.Errorf(http.StatusNotImplemented, "method not implemented")
 }
 
-func (UnimplementedCallbackServiceWebServer) ListCallbacks(context.Context, *ListCallbacksRequest) (*ListCallbacksResponse, error) {
-	return nil, runtime.Errorf(http.StatusNotImplemented, "method not implemented")
+func (UnimplementedEventServiceWebServer) mustEmbedUnimplementedEventServiceWebServer() {}
+
+type EventServiceSubscribeWebSocket interface {
+	Send(*Event) error
+	grpc.ServerStream
 }
 
-func (UnimplementedCallbackServiceWebServer) DeleteCallback(context.Context, *DeleteCallbackRequest) (*emptypb.Empty, error) {
-	return nil, runtime.Errorf(http.StatusNotImplemented, "method not implemented")
+type x_EventServiceSubscribeWebSocket struct {
+	grpc.ServerStream
 }
 
-func (UnimplementedCallbackServiceWebServer) mustEmbedUnimplementedCallbackServiceWebServer() {}
+func (x *x_EventServiceSubscribeWebSocket) Send(m *Event) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *x_EventServiceSubscribeWebSocket) Recv() (*SubscribeRequest, error) {
+	m := new(SubscribeRequest)
+
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
 
 // RegisterMeshServiceHandler registers the http handlers for service MeshService to "mux".
 func RegisterMeshServiceHandler(router *runtime.Router, server MeshServiceWebServer, interceptors ...runtime.Interceptor) {
@@ -132,22 +145,14 @@ func RegisterMeshServiceHandler(router *runtime.Router, server MeshServiceWebSer
 	})
 }
 
-// RegisterCallbackServiceHandler registers the http handlers for service CallbackService to "mux".
-func RegisterCallbackServiceHandler(router *runtime.Router, server CallbackServiceWebServer, interceptors ...runtime.Interceptor) {
+// RegisterEventServiceHandler registers the http handlers for service EventService to "mux".
+func RegisterEventServiceHandler(router *runtime.Router, server EventServiceWebServer, interceptors ...runtime.Interceptor) {
 	if router == nil {
 		return
 	}
 
-	router.Handle("DELETE", "/api/v1/callback", func(w http.ResponseWriter, r *http.Request, p runtime.Params) {
-		handlerCallbackServiceWebServerDeleteCallback(server, w, r, p, interceptors)
-	})
-
-	router.Handle("GET", "/api/v1/callback", func(w http.ResponseWriter, r *http.Request, p runtime.Params) {
-		handlerCallbackServiceWebServerListCallbacks(server, w, r, p, interceptors)
-	})
-
-	router.Handle("POST", "/api/v1/callback", func(w http.ResponseWriter, r *http.Request, p runtime.Params) {
-		handlerCallbackServiceWebServerRegisterCallback(server, w, r, p, interceptors)
+	router.Handle("GET", "/api/v1/events", func(w http.ResponseWriter, r *http.Request, p runtime.Params) {
+		handlerEventServiceWebServerSubscribe(server, w, r, p, interceptors)
 	})
 }
 
@@ -656,11 +661,9 @@ func handlerMeshServiceWebServerSendChannelMessage(server MeshServiceWebServer, 
 
 }
 
-func handlerCallbackServiceWebServerRegisterCallback(server CallbackServiceWebServer, w http.ResponseWriter, r *http.Request, _ runtime.Params, il []runtime.Interceptor) {
+func handlerEventServiceWebServerSubscribe(server EventServiceWebServer, w http.ResponseWriter, r *http.Request, _ runtime.Params, il []runtime.Interceptor) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
-
-	w.Header().Set("Content-Type", "application/json")
 
 	ctx, err := runtime.ApplyInterceptors(ctx, r, il...)
 	if err != nil {
@@ -676,11 +679,7 @@ func handlerCallbackServiceWebServerRegisterCallback(server CallbackServiceWebSe
 
 	ctx = runtime.ContextWithHeaders(ctx, r.Header)
 
-	var protoReq RegisterCallbackRequest
-
-	defer r.Body.Close()
-
-	data, err := io.ReadAll(r.Body)
+	stream, err := runtime.NewWebSocketStream(w, r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		if _, err := w.Write([]byte(err.Error())); err != nil {
@@ -690,177 +689,23 @@ func handlerCallbackServiceWebServerRegisterCallback(server CallbackServiceWebSe
 		return
 	}
 
-	if len(data) != 0 {
-		fm, err := runtime.GetFieldMaskJS(data)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			if _, err := w.Write([]byte(err.Error())); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-			}
+	defer stream.Close()
 
-			return
-		}
-
-		ctx = runtime.ContextWithFieldMask(ctx, fm)
-		err = runtime.ProtoUnmarshal(data, &protoReq)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			if _, err := w.Write([]byte(err.Error())); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-			}
-
-			return
-		}
+	streamReq := x_EventServiceSubscribeWebSocket{
+		ServerStream: stream,
 	}
 
-	_, err = server.RegisterCallback(ctx, &protoReq)
+	protoReq, err := streamReq.Recv()
 	if err != nil {
-		errstatus := runtime.GetHTTPStatusFromError(err)
-
-		w.WriteHeader(errstatus.Code())
-		if _, err := w.Write([]byte(errstatus.Message())); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
+		stream.WriteError(err)
 
 		return
 	}
 
-	w.WriteHeader(201)
-	if _, err := w.Write(nil); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	return
-
-}
-
-func handlerCallbackServiceWebServerListCallbacks(server CallbackServiceWebServer, w http.ResponseWriter, r *http.Request, _ runtime.Params, il []runtime.Interceptor) {
-	ctx, cancel := context.WithCancel(r.Context())
-	defer cancel()
-
-	w.Header().Set("Content-Type", "application/json")
-
-	ctx, err := runtime.ApplyInterceptors(ctx, r, il...)
-	if err != nil {
-		errstatus := runtime.GetHTTPStatusFromError(err)
-
-		w.WriteHeader(errstatus.Code())
-		if _, err := w.Write([]byte(errstatus.Message())); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
+	if err := server.Subscribe(protoReq, &streamReq); err != nil {
+		stream.WriteError(err)
 
 		return
 	}
-
-	ctx = runtime.ContextWithHeaders(ctx, r.Header)
-
-	var protoReq ListCallbacksRequest
-
-	msg, err := server.ListCallbacks(ctx, &protoReq)
-	if err != nil {
-		errstatus := runtime.GetHTTPStatusFromError(err)
-
-		w.WriteHeader(errstatus.Code())
-		if _, err := w.Write([]byte(errstatus.Message())); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-
-		return
-	}
-
-	raw, err := runtime.ProtoMarshal(msg)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		if _, err := w.Write([]byte(err.Error())); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-
-		return
-	}
-
-	w.WriteHeader(200)
-	if _, err := w.Write(raw); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	return
-
-}
-
-func handlerCallbackServiceWebServerDeleteCallback(server CallbackServiceWebServer, w http.ResponseWriter, r *http.Request, _ runtime.Params, il []runtime.Interceptor) {
-	ctx, cancel := context.WithCancel(r.Context())
-	defer cancel()
-
-	w.Header().Set("Content-Type", "application/json")
-
-	ctx, err := runtime.ApplyInterceptors(ctx, r, il...)
-	if err != nil {
-		errstatus := runtime.GetHTTPStatusFromError(err)
-
-		w.WriteHeader(errstatus.Code())
-		if _, err := w.Write([]byte(errstatus.Message())); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-
-		return
-	}
-
-	ctx = runtime.ContextWithHeaders(ctx, r.Header)
-
-	var protoReq DeleteCallbackRequest
-
-	defer r.Body.Close()
-
-	data, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		if _, err := w.Write([]byte(err.Error())); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-
-		return
-	}
-
-	if len(data) != 0 {
-		fm, err := runtime.GetFieldMaskJS(data)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			if _, err := w.Write([]byte(err.Error())); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-			}
-
-			return
-		}
-
-		ctx = runtime.ContextWithFieldMask(ctx, fm)
-		err = runtime.ProtoUnmarshal(data, &protoReq)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			if _, err := w.Write([]byte(err.Error())); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-			}
-
-			return
-		}
-	}
-
-	_, err = server.DeleteCallback(ctx, &protoReq)
-	if err != nil {
-		errstatus := runtime.GetHTTPStatusFromError(err)
-
-		w.WriteHeader(errstatus.Code())
-		if _, err := w.Write([]byte(errstatus.Message())); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-
-		return
-	}
-
-	w.WriteHeader(204)
-	if _, err := w.Write(nil); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	return
 
 }

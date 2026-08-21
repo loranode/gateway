@@ -80,23 +80,18 @@ message SendMessageRequest {
   optional uint32 reply_id = 4; // packet id this message replies to (0 = none)
 }
 
-// RegisterCallbackRequest registers a webhook URL.
-message RegisterCallbackRequest {
-  string url = 1; // webhook URL to register
+// Event is emitted on mesh activity: a node appeared or changed, or a message
+// arrived. message_id is set for message events; channel_id only for channel
+// (broadcast) messages.
+message Event {
+  uint32 node_id = 1;             // node the event is about
+  string event_type = 2;          // "node_created" | "node_updated" | "node_message" | "channel_message"
+  optional uint32 message_id = 3; // packet id, for message events
+  optional uint32 channel_id = 4; // channel index, for channel messages
 }
 
-// ListCallbacksRequest is the (empty) request for the callback list.
-message ListCallbacksRequest {}
-
-// ListCallbacksResponse carries the registered callbacks.
-message ListCallbacksResponse {
-  repeated string urls = 1; // registered webhook subscriptions
-}
-
-// DeleteCallbackRequest unregisters a webhook URL.
-message DeleteCallbackRequest {
-  string url = 1; // webhook URL to remove
-}
+// SubscribeRequest opens the event stream (no filter for now).
+message SubscribeRequest {}
 
 // Channel is one configured channel on the connected radio.
 message Channel {
@@ -198,38 +193,19 @@ service MeshService {
   }
 }
 
-// CallbackService manages webhook subscriptions.
-service CallbackService {
+// EventService streams mesh events to subscribers.
+service EventService {
   option (restapi.service) = {
     base_path : "/api/v1"
   };
 
-  // RegisterCallback subscribes a webhook URL to mesh events.
-  rpc RegisterCallback(RegisterCallbackRequest) returns (google.protobuf.Empty) {
-    option (restapi.method) = {
-      method : "POST"
-      path : "/callback"
-      request : "*"
-      success_code : 201
-    };
-  }
-
-  // ListCallbacks returns every registered webhook subscriptions.
-  rpc ListCallbacks(ListCallbacksRequest) returns (ListCallbacksResponse) {
+  // Subscribe streams every mesh event until the client disconnects. Over gRPC
+  // it is a server-streaming RPC; over REST it is a websocket at GET /events.
+  rpc Subscribe(SubscribeRequest) returns (stream Event) {
     option (restapi.method) = {
       method : "GET"
-      path : "/callback"
+      path : "/events"
       response : "*"
-    };
-  }
-
-  // DeleteCallback unsubscribes a webhook URL.
-  rpc DeleteCallback(DeleteCallbackRequest) returns (google.protobuf.Empty) {
-    option (restapi.method) = {
-      method : "DELETE"
-      path : "/callback"
-      request : "*"
-      success_code : 204
     };
   }
 }
