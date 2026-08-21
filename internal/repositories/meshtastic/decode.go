@@ -25,6 +25,14 @@ func (r *Repository) decode(fr *mesh.FromRadio) models.MeshEvent {
 			Name:  ch.GetSettings().GetName(),
 			Role:  ch.GetRole().String(),
 		}}
+	case fr.GetConfig().GetLora() != nil:
+		// The node's config dump carries its configured hop limit; adopt it so
+		// sent packets travel as far as the node itself would send them.
+		if hl := fr.GetConfig().GetLora().GetHopLimit(); hl > 0 {
+			r.hopLimit.Store(hl)
+		}
+
+		return models.MeshEvent{}
 	default:
 		return models.MeshEvent{}
 	}

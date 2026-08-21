@@ -19,10 +19,11 @@ func (r *Repository) Send(ctx context.Context, text string, to, channel, replyID
 
 	frame, err := proto.Marshal(&mesh.ToRadio{
 		PayloadVariant: &mesh.ToRadio_Packet{Packet: &mesh.MeshPacket{
-			To:      to,
-			Channel: channel,
-			Id:      rand.Uint32(),
-			WantAck: true,
+			To:       to,
+			Channel:  channel,
+			Id:       rand.Uint32(),
+			HopLimit: r.hopLimit.Load(),
+			WantAck:  true,
 			PayloadVariant: &mesh.MeshPacket_Decoded{Decoded: &mesh.Data{
 				Portnum: base.PortNum_TEXT_MESSAGE_APP,
 				Payload: []byte(text),

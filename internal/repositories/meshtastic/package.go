@@ -5,7 +5,10 @@
 // allows stdlib only); it is held behind a local interface.
 package meshtastic
 
-import "context"
+import (
+	"context"
+	"sync/atomic"
+)
 
 // driver is the slice of the session keeper this repository needs; keeping it
 // local lets package.go avoid importing the meshtastic library.
@@ -15,16 +18,27 @@ type driver interface {
 	SendRaw(ctx context.Context, frame []byte) error
 }
 
-// Repository is a keep-alive, decoding connection to a node's client API.
+// Repository is a keep-alive, decoding connection to a node's client API. The
+// hop limit is captured from the node's config dump and read on every Send, so
+// the two run on different goroutines and must go through the atomic.
 type Repository struct {
-	addr    string
-	session driver
+	addr     string
+	session  driver
+	hopLimit atomic.Uint32
 }
 
 // broadcast is the recipient value that marks a channel (broadcast) packet.
 const broadcast = 0xffffffff
 
+// defaultHopLimit seeds the hop limit until the node's config dump arrives. Zero
+// (the proto default) would keep messages on direct neighbours only and starve
+// broadcasts of the implicit ack, so match the Meshtastic client default of 5.
+const defaultHopLimit = 5
+
 // New builds a node transport for addr. Call Connect before Read or Send.
 func New(addr string) *Repository {
-	return &Repository{addr: addr}
+	r := &Repository{addr: addr}
+	r.hopLimit.Store(defaultHopLimit)
+
+	return r
 }
