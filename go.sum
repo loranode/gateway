@@ -18,6 +18,8 @@ github.com/hashicorp/golang-lru/v2 v2.0.7 h1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs
 github.com/hashicorp/golang-lru/v2 v2.0.7/go.mod h1:QeFd9opnmA6QUJc5vARoKUSoFhyfM2/ZepoAG6RGpeM=
 github.com/julienschmidt/httprouter v1.3.0 h1:U0609e9tgbseu3rBINet9P48AI/D3oJs4dN7jwJOQ1U=
 github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
+github.com/loranode/meshtastic v1.1.0 h1:sa+kgstEtbYM1QZU9As884a2zzSsCQTIWa3aBjSzgRY=
+github.com/loranode/meshtastic v1.1.0/go.mod h1:ANLCFfWACTiDGXJ1hu3eEZnraJJGH7UyiKz6jPgNMdE=
 github.com/mattn/go-isatty v0.0.24 h1:tGZZoVgT/KiqK1c8ocVLeDS8BSWMRd47J3Lbz7vsReI=
 github.com/mattn/go-isatty v0.0.24/go.mod h1:nMCL3Zebbrt45jsMDgnfIwz6ydEQApk5oEI3HqDio6A=
 github.com/merzzzl/proto-rest-api v0.0.1-alpha.29 h1:X+AXmzqG/JHAQPyKYGhX2D9ZO25jHMrXUE4tMCsLXis=

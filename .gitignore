@@ -2,3 +2,5 @@
 .vscode
 .DS_Store
 bin/
+*.db
+__debug_bin*

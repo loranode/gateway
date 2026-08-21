@@ -1,14 +1,14 @@
 package mappers
 
 import (
-	"github.com/loranode/gateway/api/rest"
+	"github.com/loranode/gateway/api"
 	"github.com/loranode/gateway/internal/models"
 )
 
 // NodeToProto converts a stored node into its REST representation. Timestamps are
 // Unix seconds.
-func NodeToProto(n *models.Node) *rest.Node {
-	out := &rest.Node{
+func NodeToProto(n *models.Node) *api.Node {
+	out := &api.Node{
 		Num:        n.Num,
 		LongName:   n.LongName,
 		ShortName:  n.ShortName,

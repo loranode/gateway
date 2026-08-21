@@ -1,20 +1,18 @@
 package worker
 
-import (
-	"context"
-	"time"
-)
+import "context"
 
-// Run connects to the node and processes its stream until ctx is cancelled,
-// reconnecting after any error.
+// Run keeps the node link alive and folds every decoded event into the registry
+// until ctx is cancelled.
 func (w *Worker) Run(ctx context.Context) {
-	for {
-		_ = w.session(ctx)
+	w.mesh.Connect(ctx)
 
-		select {
-		case <-ctx.Done():
+	for {
+		ev, err := w.mesh.Read(ctx)
+		if err != nil {
 			return
-		case <-time.After(reconnectDelay):
 		}
+
+		w.apply(ctx, ev)
 	}
 }

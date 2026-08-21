@@ -2,8 +2,7 @@ version: 1
 
 ignore:
   - "**/*_test.go"
-  - "api/meshtastic/*.pb.go"
-  - "api/rest/*.go"
+  - "api/**"
 
 rules:
   - path: "cmd/app"
@@ -17,7 +16,7 @@ rules:
       - "$module/internal/worker"
       - "$module/internal/repositories/**"
       - "$module/internal/services/**"
-      - "$module/api/rest"
+      - "$module/api"
       - "github.com/merzzzl/proto-rest-api/swagger"
       - "github.com/merzzzl/proto-rest-api/runtime"
 
@@ -40,7 +39,7 @@ rules:
     exclude-funcs: ["Load"]
 
   - path: "internal/config/model.go"
-    exclude-types: ["Config*"]
+    exclude-types: ["Config"]
 
   - path: "internal/controller"
     mode: flat
@@ -52,7 +51,7 @@ rules:
       - "$module/internal/models"
       - "$module/internal/services/**"
       - "$module/internal/mappers"
-      - "$module/api/rest"
+      - "$module/api"
       - "google.golang.org/protobuf/types/known/*"
       - "github.com/merzzzl/proto-rest-api/runtime"
 
@@ -60,10 +59,10 @@ rules:
     allow-types: local
     allow-vars: local
     allow-funcs: local
-    exclude-funcs: ["New*"]
+    exclude-funcs: ["New"]
     exclude-types: ["Controller"]
     modules:
-      - "$module/api/rest"
+      - "$module/api"
       - "$module/internal/services/**"
 
   - path: "internal/worker"
@@ -75,14 +74,12 @@ rules:
     modules:
       - "$module/internal/models"
       - "$module/internal/services/**"
-      - "$module/api/meshtastic"
-      - "google.golang.org/protobuf/**"
 
   - path: "internal/worker/package.go"
     allow-types: local
     allow-vars: local
     allow-funcs: local
-    exclude-funcs: ["New*"]
+    exclude-funcs: ["New", "Run"]
     exclude-types: ["Worker"]
     modules:
       - "$module/internal/services/**"
@@ -106,6 +103,8 @@ rules:
       - "$module/migrations"
       - "modernc.org/sqlite"
       - "github.com/pressly/goose/**"
+      - "google.golang.org/protobuf/**"
+      - "github.com/loranode/meshtastic/**"
 
   - path: "internal/repositories/*/package.go"
     allow-types: local
@@ -151,7 +150,7 @@ rules:
     allow-funcs: exported
     modules:
       - "$module/internal/models"
-      - "$module/api/rest"
+      - "$module/api"
 
   - path: "migrations"
     mode: flat

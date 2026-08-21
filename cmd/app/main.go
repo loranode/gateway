@@ -13,15 +13,15 @@ import (
 	"github.com/merzzzl/proto-rest-api/runtime"
 	"github.com/merzzzl/proto-rest-api/swagger"
 
-	"github.com/loranode/gateway/api/rest"
+	"github.com/loranode/gateway/api"
 	"github.com/loranode/gateway/internal/config"
 	"github.com/loranode/gateway/internal/controller"
-	"github.com/loranode/gateway/internal/repositories/radio"
+	"github.com/loranode/gateway/internal/repositories/meshtastic"
 	"github.com/loranode/gateway/internal/repositories/sqlite"
 	"github.com/loranode/gateway/internal/repositories/webhook"
 	"github.com/loranode/gateway/internal/services/events"
+	"github.com/loranode/gateway/internal/services/mesh"
 	"github.com/loranode/gateway/internal/services/registry"
-	"github.com/loranode/gateway/internal/services/transport"
 	"github.com/loranode/gateway/internal/worker"
 )
 
@@ -52,9 +52,9 @@ func main() {
 
 	reg := registry.New(db)
 	ev := events.New(db, webhook.New())
-	tr := transport.New(radio.New(cfg.NodeAddr))
-	wrk := worker.New(tr, reg, ev)
-	ctl := controller.New(reg, ev, wrk.Send)
+	meshSvc := mesh.New(meshtastic.New(cfg.NodeAddr))
+	wrk := worker.New(meshSvc, reg, ev)
+	ctl := controller.New(reg, ev, meshSvc)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -62,11 +62,11 @@ func main() {
 	go wrk.Run(ctx)
 
 	router := runtime.NewRouter()
-	rest.RegisterMeshServiceHandler(router, ctl)
-	rest.RegisterCallbackServiceHandler(router, ctl)
+	api.RegisterMeshServiceHandler(router, ctl)
+	api.RegisterCallbackServiceHandler(router, ctl)
 
 	mux := router.Mux()
-	mux.Handle("/swagger/", swagger.Handler(rest.GetGatewaySwagger()))
+	mux.Handle("/swagger/", swagger.Handler(api.GetGatewaySwagger()))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 

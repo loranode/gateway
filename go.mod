@@ -4,6 +4,7 @@ go 1.25.7
 
 require (
 	github.com/caarlos0/env/v11 v11.4.1
+	github.com/loranode/meshtastic v1.1.0
 	github.com/merzzzl/proto-rest-api v0.0.1-alpha.29
 	github.com/pressly/goose/v3 v3.27.3
 	google.golang.org/protobuf v1.36.12

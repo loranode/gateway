@@ -5,7 +5,7 @@ package rest;
 import "restapi/annotations.proto";
 import "google/protobuf/empty.proto";
 
-option go_package = "github.com/loranode/gateway/api/rest;rest";
+option go_package = "github.com/loranode/gateway/api;api";
 
 // Node is one full entry in the mesh node database.
 message Node {
@@ -74,9 +74,10 @@ message ListMessagesRequest {
 
 // SendMessageRequest is a text message to transmit to one node.
 message SendMessageRequest {
-  uint32 num = 1;              // recipient node number (path)
-  string text = 2;             // message body text
-  optional uint32 channel = 3; // channel index (0 by default)
+  uint32 num = 1;               // recipient node number (path)
+  string text = 2;              // message body text
+  optional uint32 channel = 3;  // channel index (0 by default)
+  optional uint32 reply_id = 4; // packet id this message replies to (0 = none)
 }
 
 // RegisterCallbackRequest registers a webhook URL.
@@ -115,6 +116,13 @@ message ListChannelsResponse {
 // ListChannelMessagesRequest selects a channel for its message list.
 message ListChannelMessagesRequest {
   uint32 index = 1; // channel index (path)
+}
+
+// SendChannelMessageRequest is a text message to broadcast on one channel.
+message SendChannelMessageRequest {
+  uint32 index = 1;             // channel index (path)
+  string text = 2;              // message body text
+  optional uint32 reply_id = 3; // packet id this message replies to (0 = none)
 }
 
 // MeshService exposes the connected Meshtastic node.
@@ -178,6 +186,16 @@ service MeshService {
       response : "*"
     };
   }
+
+  // SendChannelMessage broadcasts a text message on one channel.
+  rpc SendChannelMessage(SendChannelMessageRequest) returns (google.protobuf.Empty) {
+    option (restapi.method) = {
+      method : "POST"
+      path : "/channels/:index/messages"
+      request : "*"
+      success_code : 202
+    };
+  }
 }
 
 // CallbackService manages webhook subscriptions.
@@ -187,8 +205,7 @@ service CallbackService {
   };
 
   // RegisterCallback subscribes a webhook URL to mesh events.
-  rpc RegisterCallback(RegisterCallbackRequest)
-      returns (google.protobuf.Empty) {
+  rpc RegisterCallback(RegisterCallbackRequest) returns (google.protobuf.Empty) {
     option (restapi.method) = {
       method : "POST"
       path : "/callback"

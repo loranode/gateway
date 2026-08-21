@@ -77,6 +77,30 @@ MeshService exposes the connected Meshtastic node.
 | 200 | ListMessagesResponse carries the messages for a node. | **application/json**: [ListMessagesResponse](#listmessagesresponse-schema)<br> |
 | default |  |  |
 
+### [POST] /api/v1/channels/{index}/messages
+**SendChannelMessage broadcasts a text message on one channel.**
+
+#### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ------ |
+| index | path | channel index (path) | Yes | integer |
+
+#### Request Body
+
+SendChannelMessageRequest is a text message to broadcast on one channel.
+
+| Required | Schema |
+| -------- | ------ |
+|  Yes | **application/json**: [SendChannelMessageRequest](#sendchannelmessagerequest-schema)<br> |
+
+#### Responses
+
+| Code | Description |
+| ---- | ----------- |
+| 202 |  |
+| default |  |
+
 ### [GET] /api/v1/nodes
 **ListNodes returns a compact summary of every node the radio can see.**
 
@@ -220,6 +244,15 @@ RegisterCallbackRequest registers a webhook URL.
 | ---- | ---- | ----------- | -------- |
 | url | string | webhook URL to register | Yes |
 
+#### SendChannelMessageRequest Schema
+
+SendChannelMessageRequest is a text message to broadcast on one channel.
+
+| Name | Type | Description | Required |
+| ---- | ---- | ----------- | -------- |
+| replyId | integer | packet id this message replies to (0 = none) | No |
+| text | string | message body text | Yes |
+
 #### SendMessageRequest Schema
 
 SendMessageRequest is a text message to transmit to one node.
@@ -227,4 +260,5 @@ SendMessageRequest is a text message to transmit to one node.
 | Name | Type | Description | Required |
 | ---- | ---- | ----------- | -------- |
 | channel | integer | channel index (0 by default) | No |
+| replyId | integer | packet id this message replies to (0 = none) | No |
 | text | string | message body text | Yes |
