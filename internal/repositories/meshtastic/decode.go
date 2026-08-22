@@ -3,6 +3,7 @@ package meshtastic
 import (
 	"github.com/loranode/meshtastic/pb/base"
 	"github.com/loranode/meshtastic/pb/mesh"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/loranode/gateway/internal/models"
 )
@@ -45,9 +46,26 @@ func (r *Repository) decodePacket(p *mesh.MeshPacket) models.MeshEvent {
 	ev := models.MeshEvent{Node: &node}
 
 	data := p.GetDecoded()
-	if data != nil && data.GetPortnum() == base.PortNum_TEXT_MESSAGE_APP {
+	if data.GetPortnum() == base.PortNum_TEXT_MESSAGE_APP {
 		msg := r.textMessage(p, data)
 		ev.Message = &msg
+	}
+
+	// A routing packet carrying a request_id is the ack for one of our sends;
+	// hand its result to the Send blocked on that packet id, if any.
+	if data.GetPortnum() == base.PortNum_ROUTING_APP {
+		if ch, ok := r.pending.Load(data.GetRequestId()); ok {
+			if c, isChan := ch.(chan mesh.Routing_Error); isChan {
+				var routing mesh.Routing
+
+				_ = proto.Unmarshal(data.GetPayload(), &routing)
+
+				select {
+				case c <- routing.GetErrorReason():
+				default:
+				}
+			}
+		}
 	}
 
 	return ev

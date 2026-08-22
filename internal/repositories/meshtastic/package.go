@@ -7,8 +7,10 @@ package meshtastic
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // driver is the slice of the session keeper this repository needs; keeping it
@@ -30,6 +32,7 @@ type Repository struct {
 	session  driver
 	hopLimit atomic.Uint32
 	pkiNodes sync.Map
+	pending  sync.Map
 }
 
 // broadcast is the recipient value that marks a channel (broadcast) packet.
@@ -39,6 +42,18 @@ const broadcast = 0xffffffff
 // (the proto default) would keep messages on direct neighbours only and starve
 // broadcasts of the implicit ack, so match the Meshtastic client default of 5.
 const defaultHopLimit = 5
+
+// ackTimeout bounds how long a direct-message Send waits for the routing ack
+// before giving up. The firmware retransmits a want_ack packet a few times over
+// roughly half a minute, so allow for that plus a multi-hop round trip.
+const ackTimeout = 45 * time.Second
+
+var (
+	// ErrSendNotAcked is returned when no routing ack arrives within ackTimeout.
+	ErrSendNotAcked = errors.New("message not acknowledged by the mesh")
+	// ErrSendRejected is returned when the mesh reports a delivery failure.
+	ErrSendRejected = errors.New("message rejected by the mesh")
+)
 
 // New builds a node transport for addr. Call Connect before Read or Send.
 func New(addr string) *Repository {

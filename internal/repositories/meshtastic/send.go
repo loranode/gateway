@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"time"
 
 	"github.com/loranode/meshtastic/pb/base"
 	"github.com/loranode/meshtastic/pb/mesh"
@@ -22,12 +23,13 @@ func (r *Repository) Send(ctx context.Context, text string, to, channel, replyID
 	// recipient expecting a PKI DM silently drops. Request it for direct messages
 	// to nodes we have seen advertise a public key.
 	_, hasKey := r.pkiNodes.Load(to)
+	id := rand.Uint32()
 
 	frame, err := proto.Marshal(&mesh.ToRadio{
 		PayloadVariant: &mesh.ToRadio_Packet{Packet: &mesh.MeshPacket{
 			To:           to,
 			Channel:      channel,
-			Id:           rand.Uint32(),
+			Id:           id,
 			HopLimit:     r.hopLimit.Load(),
 			WantAck:      true,
 			PkiEncrypted: to != broadcast && hasKey,
@@ -42,9 +44,37 @@ func (r *Repository) Send(ctx context.Context, text string, to, channel, replyID
 		return fmt.Errorf("marshal send: %w", err)
 	}
 
+	// A broadcast has only an unreliable implicit ack, so send it and return. A
+	// direct message registers a waiter before sending and blocks until the read
+	// loop reports the node's routing ack, so the caller learns whether the mesh
+	// accepted it.
+	if to == broadcast {
+		if err := r.session.SendRaw(ctx, frame); err != nil {
+			return fmt.Errorf("send message: %w", err)
+		}
+
+		return nil
+	}
+
+	ack := make(chan mesh.Routing_Error, 1)
+	r.pending.Store(id, ack)
+
+	defer r.pending.Delete(id)
+
 	if err := r.session.SendRaw(ctx, frame); err != nil {
 		return fmt.Errorf("send message: %w", err)
 	}
 
-	return nil
+	select {
+	case reason := <-ack:
+		if reason != mesh.Routing_NONE {
+			return fmt.Errorf("%w: %s", ErrSendRejected, reason)
+		}
+
+		return nil
+	case <-time.After(ackTimeout):
+		return ErrSendNotAcked
+	case <-ctx.Done():
+		return fmt.Errorf("await ack: %w", ctx.Err())
+	}
 }
